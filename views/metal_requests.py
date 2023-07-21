@@ -1,107 +1,98 @@
-"""
-This module provides metals stuff
-"""
-METALS = [
-    {
-        "id": 1,
-        "metal": "Sterling Silver",
-        "price": 12.42
-    },
-    {
-        "id": 2,
-        "metal": "14K Gold",
-        "price": 736.4
-    },
-    {
-        "id": 3,
-        "metal": "24K Gold",
-        "price": 1258.9
-    },
-    {
-        "id": 4,
-        "metal": "Platinum",
-        "price": 795.45
-    },
-    {
-        "id": 5,
-        "metal": "Palladium",
-        "price": 1241
-    }
-]
-
+import sqlite3
+from models.metal import Metal
 
 def get_all_metals():
     """
-    Get all metals.
+    Get all metals from the Metals table.
+
     """
-    return METALS
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            SELECT id, metal, price
+            FROM Metals
+        """)
+
+        metals = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            metal = Metal(row['id'], row['metal'], row['price'])
+            metals.append(metal.__dict__)
+
+    return metals
 
 def get_single_metal(id):
     """
     Get a single metal by ID.
 
     """
-    # Variable to hold the found metal, if it exists
-    requested_metal = None
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    # Iterate the METALS list above. Very similar to the
-    # for..of loops you used in JavaScript.
-    for metal in METALS:
-        # Dictionaries in Python use [] notation to find a key
-        # instead of the dot notation that JavaScript used.
-        if metal["id"] == id:
-            requested_metal = metal
+        db_cursor.execute("""
+            SELECT id, metal, price
+            FROM Metals
+            WHERE id = ?
+        """, (id, ))
 
-    return requested_metal
+        row = db_cursor.fetchone()
+
+        if row is not None:
+            metal = Metal(row['id'], row['metal'], row['price'])
+            return metal.__dict__
+        else:
+            return None
 
 def create_metal(metal):
     """
-    Create a new metal and add it to the list of metals.
-
+    Create a new metal and add it to the Metals table.
     """
-    # Get the id value of the last metal in the list
-    max_id = METALS[-1]["id"]
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
+        db_cursor.execute("""
+            INSERT INTO Metals (metal, price)
+            VALUES (?, ?)
+        """, (metal['metal'], metal['price']))
 
-    # Add an `id` property to the metal dictionary
-    metal["id"] = new_id
+        id = db_cursor.lastrowid
 
-    # Add the metal dictionary to the list
-    METALS.append(metal)
+        metal['id'] = id
 
-    # Return the dictionary with `id` property added
     return metal
 
 def delete_metal(id):
     """
-    delete metal
-
+    Delete metal
     """
-    # Initial -1 value for metal index, in case one isn't found
-    metal_index = -1
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Iterate the METALS list, but use enumerate() so that you
-    # can access the index value of each item
-    for index, metal in enumerate(METALS):
-        if metal["id"] == id:
-            # Found the metal. Store the current index.
-            metal_index = index
-
-    # If the metal was found, use pop(int) to remove it from list
-    if metal_index >= 0:
-        METALS.pop(metal_index)
+        db_cursor.execute("""
+            DELETE FROM Metals
+            WHERE id = ?
+        """, (id, ))
 
 def update_metal(id, new_metal):
     """
-    update metal
-
+    Update metal
     """
-    # Iterate the METALS list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, metal in enumerate(METALS):
-        if metal["id"] == id:
-            # Found the metal. Update the value.
-            METALS[index] = new_metal
-            break
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            UPDATE Metals
+            SET metal = ?, price = ?
+            WHERE id = ?
+        """, (new_metal['metal'], new_metal['price'], id))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True

@@ -1,108 +1,98 @@
-"""
-This module provides size stuff
-"""
-SIZES = [
-    {
-        "id": 1,
-        "carets": 0.5,
-        "price": 405
-    },
-    {
-        "id": 2,
-        "carets": 0.75,
-        "price": 782
-    },
-    {
-        "id": 3,
-        "carets": 1,
-        "price": 1470
-    },
-    {
-        "id": 4,
-        "carets": 1.5,
-        "price": 1997
-    },
-    {
-        "id": 5,
-        "carets": 2,
-        "price": 3638
-    }
-]
-
+import sqlite3
+from models.size import Size
 
 def get_all_sizes():
     """
-    Get all sizes.
+    Get all sizes from the Sizes table.
 
     """
-    return SIZES
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            SELECT id, carets, price
+            FROM Sizes
+        """)
+
+        sizes = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            size = Size(row['id'], row['carets'], row['price'])
+            sizes.append(size.__dict__)
+
+    return sizes
 
 def get_single_size(id):
     """
     Get a single size by ID.
 
     """
-    # Variable to hold the found size, if it exists
-    requested_size = None
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    # Iterate the SIZES list above. Very similar to the
-    # for..of loops you used in JavaScript.
-    for size in SIZES:
-        # Dictionaries in Python use [] notation to find a key
-        # instead of the dot notation that JavaScript used.
-        if size["id"] == id:
-            requested_size = size
+        db_cursor.execute("""
+            SELECT id, carets, price
+            FROM Sizes
+            WHERE id = ?
+        """, (id, ))
 
-    return requested_size
+        row = db_cursor.fetchone()
+
+        if row is not None:
+            size = Size(row['id'], row['carets'], row['price'])
+            return size.__dict__
+        else:
+            return None
 
 def create_size(size):
     """
-    Create a new size and add it to the list of SIZES.
-
+    Create a new size and add it to the Sizes table.
     """
-    # Get the id value of the last size in the list
-    max_id = SIZES[-1]["id"]
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
+        db_cursor.execute("""
+            INSERT INTO Sizes (carets, price)
+            VALUES (?, ?)
+        """, (size['carets'], size['price']))
 
-    # Add an `id` property to the size dictionary
-    size["id"] = new_id
+        id = db_cursor.lastrowid
 
-    # Add the size dictionary to the list
-    SIZES.append(size)
+        size['id'] = id
 
-    # Return the dictionary with `id` property added
     return size
 
 def delete_size(id):
     """
-    delete size
-
+    Delete size
     """
-    # Initial -1 value for size index, in case one isn't found
-    size_index = -1
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Iterate the SIZES list, but use enumerate() so that you
-    # can access the index value of each item
-    for index, size in enumerate(SIZES):
-        if size["id"] == id:
-            # Found the size. Store the current index.
-            size_index = index
-
-    # If the size was found, use pop(int) to remove it from list
-    if size_index >= 0:
-        SIZES.pop(size_index)
+        db_cursor.execute("""
+            DELETE FROM Sizes
+            WHERE id = ?
+        """, (id, ))
 
 def update_size(id, new_size):
     """
-    update size
-
+    Update size
     """
-    # Iterate the SIZES list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, size in enumerate(SIZES):
-        if size["id"] == id:
-            # Found the size. Update the value.
-            SIZES[index] = new_size
-            break
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            UPDATE Sizes
+            SET carets = ?, price = ?
+            WHERE id = ?
+        """, (new_size['carets'], new_size['price'], id))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True

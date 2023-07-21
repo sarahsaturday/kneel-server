@@ -1,98 +1,98 @@
-"""
-This module provides style stuff
-"""
-STYLES = [
-    {
-        "id": 1,
-        "style": "Classic",
-        "price": 500
-    },
-    {
-        "id": 2,
-        "style": "Modern",
-        "price": 710
-    },
-    {
-        "id": 3,
-        "style": "Vintage",
-        "price": 965
-    }
-]
-
+import sqlite3
+from models.style import Style
 
 def get_all_styles():
     """
-    Get all styles.
+    Get all styles from the Styles table.
 
     """
-    return STYLES
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            SELECT id, style, price
+            FROM Styles
+        """)
+
+        styles = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            style = Style(row['id'], row['style'], row['price'])
+            styles.append(style.__dict__)
+
+    return styles
 
 def get_single_style(id):
     """
     Get a single style by ID.
 
     """
-    # Variable to hold the found style, if it exists
-    requested_style = None
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    # Iterate the STYLES list above. Very similar to the
-    # for..of loops you used in JavaScript.
-    for style in STYLES:
-        # Dictionaries in Python use [] notation to find a key
-        # instead of the dot notation that JavaScript used.
-        if style["id"] == id:
-            requested_style = style
+        db_cursor.execute("""
+            SELECT id, style, price
+            FROM Styles
+            WHERE id = ?
+        """, (id, ))
 
-    return requested_style
+        row = db_cursor.fetchone()
+
+        if row is not None:
+            style = Style(row['id'], row['style'], row['price'])
+            return style.__dict__
+        else:
+            return None
 
 def create_style(style):
     """
-    Create a new style and add it to the list of STYLES.
-
+    Create a new style and add it to the Styles table.
     """
-    # Get the id value of the last style in the list
-    max_id = STYLES[-1]["id"]
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
+        db_cursor.execute("""
+            INSERT INTO Styles (style, price)
+            VALUES (?, ?)
+        """, (style['style'], style['price']))
 
-    # Add an `id` property to the style dictionary
-    style["id"] = new_id
+        id = db_cursor.lastrowid
 
-    # Add the style dictionary to the list
-    STYLES.append(style)
+        style['id'] = id
 
-    # Return the dictionary with `id` property added
     return style
 
 def delete_style(id):
     """
-    delete style
-
+    Delete style
     """
-    # Initial -1 value for style index, in case one isn't found
-    style_index = -1
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Iterate the STYLES list, but use enumerate() so that you
-    # can access the index value of each item
-    for index, style in enumerate(STYLES):
-        if style["id"] == id:
-            # Found the style. Store the current index.
-            style_index = index
-
-    # If the style was found, use pop(int) to remove it from list
-    if style_index >= 0:
-        STYLES.pop(style_index)
+        db_cursor.execute("""
+            DELETE FROM Styles
+            WHERE id = ?
+        """, (id, ))
 
 def update_style(id, new_style):
     """
-    update style
-
+    Update style
     """
-    # Iterate the STYLES list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, style in enumerate(STYLES):
-        if style["id"] == id:
-            # Found the style. Update the value.
-            STYLES[index] = new_style
-            break
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            UPDATE Styles
+            SET style = ?, price = ?
+            WHERE id = ?
+        """, (new_style['style'], new_style['price'], id))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True
